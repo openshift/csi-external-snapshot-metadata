@@ -3,6 +3,6 @@ WORKDIR /go/src/github.com/kubernetes-csi/external-snapshot-metadata
 COPY . .
 RUN make build GOFLAGS_VENDOR=-mod=vendor
 
-FROM registry.ci.openshift.org/ocp/4.22:base-rhel9
+FROM registry.ci.openshift.org/ocp/4.22:base-rhel9-minimal
 COPY --from=builder /go/src/github.com/kubernetes-csi/external-snapshot-metadata/bin/csi-snapshot-metadata /usr/bin/
 ENTRYPOINT ["/usr/bin/csi-snapshot-metadata"]
