@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	cw "github.com/kubernetes-csi/external-snapshotter/v8/pkg/webhook"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -56,7 +57,13 @@ func TestNewServer(t *testing.T) {
 		rt.TLSCertFile = rta.TLSCertFile
 		rt.TLSKeyFile = rta.TLSKeyFile + "foo" // invalid path
 
-		server, err := NewServer(ServerConfig{Runtime: &rt})
+		// Should fail to load the invalid cert
+		cw, err := cw.NewCertWatcher(rt.TLSCertFile, rt.TLSKeyFile)
+		assert.Error(t, err)
+		assert.Nil(t, cw)
+
+		// Show fail to start due to missing certwatcher
+		server, err := NewServer(ServerConfig{Runtime: &rt, Certwatcher: cw})
 		assert.Error(t, err)
 		assert.Nil(t, server)
 	})
@@ -71,7 +78,11 @@ func TestNewServer(t *testing.T) {
 		rt.TLSKeyFile = rta.TLSKeyFile
 		rt.GRPCPort = -1 // invalid port
 
-		s, err := NewServer(ServerConfig{Runtime: &rt})
+		cw, err := cw.NewCertWatcher(rt.TLSCertFile, rt.TLSKeyFile)
+		assert.NoError(t, err)
+		assert.NotNil(t, cw)
+
+		s, err := NewServer(ServerConfig{Runtime: &rt, Certwatcher: cw})
 		assert.NoError(t, err)
 		assert.NotNil(t, s)
 		assert.NotNil(t, s.grpcServer)
@@ -91,17 +102,22 @@ func TestNewServer(t *testing.T) {
 		rt.TLSCertFile = rta.TLSCertFile
 		rt.TLSKeyFile = rta.TLSKeyFile
 
+		cw, err := cw.NewCertWatcher(rt.TLSCertFile, rt.TLSKeyFile)
+		assert.NoError(t, err)
+		assert.NotNil(t, cw)
+
 		expMaxStreamDur := HandlerDefaultMaxStreamDuration + time.Minute
 		s, err := NewServer(ServerConfig{
 			Runtime:      &rt,
 			MaxStreamDur: expMaxStreamDur,
+			Certwatcher:  cw,
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, s)
 		assert.NotNil(t, s.grpcServer)
 		assert.Equal(t, s.config.Runtime, &rt)
 		assert.Equal(t, expMaxStreamDur, s.config.MaxStreamDur)
-		assert.False(t, s.isReady()) // initialized to not ready
+		assert.False(t, s.IsReady()) // initialized to not ready
 
 		err = s.Start()
 		assert.NoError(t, err)
@@ -115,7 +131,7 @@ func TestNewServer(t *testing.T) {
 			assert.Contains(t, si, serviceName)
 		}
 
-		assert.False(t, s.isReady()) // not yet ready
+		assert.False(t, s.IsReady()) // not yet ready
 		err = s.isCSIDriverReady(context.Background())
 		assert.Error(t, err)
 		st, ok := status.FromError(err)
@@ -125,11 +141,11 @@ func TestNewServer(t *testing.T) {
 
 		s.CSIDriverIsReady()
 
-		assert.True(t, s.isReady()) // now ready!
+		assert.True(t, s.IsReady()) // now ready!
 		assert.NoError(t, s.isCSIDriverReady(context.Background()))
 
 		s.Stop()
-		assert.False(t, s.isReady())
+		assert.False(t, s.IsReady())
 		assert.Error(t, s.isCSIDriverReady(context.Background()))
 	})
 }
