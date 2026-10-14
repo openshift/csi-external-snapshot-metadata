@@ -12,7 +12,7 @@ require (
 	github.com/kubernetes-csi/external-snapshotter/v8 v8.4.0
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/grpc v1.79.3
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.12
 	k8s.io/api v0.34.0
 	k8s.io/apimachinery v0.34.0
 	k8s.io/apiserver v0.34.0
