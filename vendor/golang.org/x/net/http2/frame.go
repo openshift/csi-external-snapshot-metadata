@@ -44,17 +44,16 @@ const (
 )
 
 var frameNames = [...]string{
-	FrameData:           "DATA",
-	FrameHeaders:        "HEADERS",
-	FramePriority:       "PRIORITY",
-	FrameRSTStream:      "RST_STREAM",
-	FrameSettings:       "SETTINGS",
-	FramePushPromise:    "PUSH_PROMISE",
-	FramePing:           "PING",
-	FrameGoAway:         "GOAWAY",
-	FrameWindowUpdate:   "WINDOW_UPDATE",
-	FrameContinuation:   "CONTINUATION",
-	FramePriorityUpdate: "PRIORITY_UPDATE",
+	FrameData:         "DATA",
+	FrameHeaders:      "HEADERS",
+	FramePriority:     "PRIORITY",
+	FrameRSTStream:    "RST_STREAM",
+	FrameSettings:     "SETTINGS",
+	FramePushPromise:  "PUSH_PROMISE",
+	FramePing:         "PING",
+	FrameGoAway:       "GOAWAY",
+	FrameWindowUpdate: "WINDOW_UPDATE",
+	FrameContinuation: "CONTINUATION",
 }
 
 func (t FrameType) String() string {
@@ -130,17 +129,16 @@ var flagName = map[FrameType]map[Flags]string{
 type frameParser func(fc *frameCache, fh FrameHeader, countError func(string), payload []byte) (Frame, error)
 
 var frameParsers = [...]frameParser{
-	FrameData:           parseDataFrame,
-	FrameHeaders:        parseHeadersFrame,
-	FramePriority:       parsePriorityFrame,
-	FrameRSTStream:      parseRSTStreamFrame,
-	FrameSettings:       parseSettingsFrame,
-	FramePushPromise:    parsePushPromise,
-	FramePing:           parsePingFrame,
-	FrameGoAway:         parseGoAwayFrame,
-	FrameWindowUpdate:   parseWindowUpdateFrame,
-	FrameContinuation:   parseContinuationFrame,
-	FramePriorityUpdate: parsePriorityUpdateFrame,
+	FrameData:         parseDataFrame,
+	FrameHeaders:      parseHeadersFrame,
+	FramePriority:     parsePriorityFrame,
+	FrameRSTStream:    parseRSTStreamFrame,
+	FrameSettings:     parseSettingsFrame,
+	FramePushPromise:  parsePushPromise,
+	FramePing:         parsePingFrame,
+	FrameGoAway:       parseGoAwayFrame,
+	FrameWindowUpdate: parseWindowUpdateFrame,
+	FrameContinuation: parseContinuationFrame,
 }
 
 func typeFrameParser(t FrameType) frameParser {
@@ -1186,34 +1184,9 @@ type PriorityFrame struct {
 	PriorityParam
 }
 
-// defaultRFC9218Priority determines what priority we should use as the default
-// value.
-//
-// According to RFC 9218, by default, streams should be given an urgency of 3
-// and should be non-incremental. However, making streams non-incremental by
-// default would be a huge change to our historical behavior where we would
-// round-robin writes across streams. When streams are non-incremental, we
-// would process streams of the same urgency one-by-one to completion instead.
-//
-// To avoid such a sudden change which might break some HTTP/2 users, this
-// function allows the caller to specify whether they can actually use the
-// default value as specified in RFC 9218. If not, this function will return a
-// priority value where streams are incremental by default instead: effectively
-// a round-robin between stream of the same urgency.
-//
-// As an example, a server might not be able to use the RFC 9218 default value
-// when it's not sure that the client it is serving is aware of RFC 9218.
-func defaultRFC9218Priority(canUseDefault bool) PriorityParam {
-	if canUseDefault {
-		return PriorityParam{
-			urgency:     3,
-			incremental: 0,
-		}
-	}
-	return PriorityParam{
-		urgency:     3,
-		incremental: 1,
-	}
+var defaultRFC9218Priority = PriorityParam{
+	incremental: 0,
+	urgency:     3,
 }
 
 // Note that HTTP/2 has had two different prioritization schemes, and
